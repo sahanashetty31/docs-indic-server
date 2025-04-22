@@ -6,22 +6,20 @@ API_URL = "http://209.20.158.215:7860/v1/visual_query/?src_lang=eng_Latn&tgt_lan
 
 def ocr_from_paths(file_paths, query):
     results = []
-    # Ensure file_paths is a list
     if isinstance(file_paths, str):
         file_paths = [file_paths]
+    
     for path in file_paths:
         filename = path.split("/")[-1]
         mime_type, _ = mimetypes.guess_type(path)
         if not mime_type:
-            results.append((filename, "Unsupported file type"))
+            results.append(f"❌ {filename}: Unsupported file type")
             continue
+            
         with open(path, "rb") as f:
-            files_param = {
-                "file": (filename, f, mime_type)
-            }
-            data_param = {
-                "query": query or ""
-            }
+            files_param = {"file": (filename, f, mime_type)}
+            data_param = {"query": query or ""}
+            
             try:
                 response = requests.post(
                     API_URL,
@@ -32,40 +30,39 @@ def ocr_from_paths(file_paths, query):
                 if response.status_code == 200:
                     resp_json = response.json()
                     extracted_text = resp_json.get("result") or resp_json.get("text") or str(resp_json)
-                    # Save result to a .txt file for output
-                    out_path = f"output_{filename}.txt"
-                    with open(out_path, "w", encoding="utf-8") as out_f:
-                        out_f.write(extracted_text)
-                    results.append(out_path)
+                    results.append(f"✅ {filename}:\n{extracted_text}")
                 else:
-                    results.append(f"API Error: {response.status_code} for {filename}")
+                    results.append(f"❌ {filename}: API Error ({response.status_code})")
             except Exception as e:
-                results.append(f"Exception: {str(e)} for {filename}")
-    return results if len(results) > 1 else results[0]
+                results.append(f"❌ {filename}: {str(e)}")
+    
+    return "\n\n".join(results)
 
 with gr.Blocks() as demo:
-    gr.Markdown("## Browse & OCR Extract PDFs/Images (Batch)\nSelect files from server and extract text using OCR API.")
+    gr.Markdown("## Browse & OCR Extract PDFs/Images (Batch)")
     with gr.Row():
         file_input = gr.File(
             label="Upload Files",
-            file_types=[".pdf", ".png", ".jpg", ".jpeg", ".webp"], # Specify the file types you want to allow
-            file_count="multiple"  # Allow multiple files to be uploaded
-)
-        
+            file_types=[".pdf", ".png", ".jpg", ".jpeg", ".webp"],
+            file_count="multiple"
+        )
         query_input = gr.Textbox(
             label="Query (optional)",
             placeholder="Enter a query string for the API"
         )
-    # Output: list of generated text files for download
-    output_files = gr.File(
-        label="Extracted Text Files",
-        file_count="multiple"
+    
+    output_text = gr.Textbox(
+        label="Extracted Text Results",
+        interactive=False,
+        lines=15,
+        placeholder="OCR results will appear here..."
     )
+    
     submit_btn = gr.Button("Extract Text")
     submit_btn.click(
         ocr_from_paths,
         inputs=[file_input, query_input],
-        outputs=output_files
+        outputs=output_text
     )
 
 if __name__ == "__main__":
