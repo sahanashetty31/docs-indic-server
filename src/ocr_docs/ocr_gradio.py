@@ -2,7 +2,7 @@ import gradio as gr
 import requests
 import mimetypes
 
-API_URL = "http://209.20.158.215:7860/v1/visual_query/?src_lang=eng_Latn&tgt_lang=kan_Knda"
+API_URL = "http://209.20.158.215:7862/v1/visual_query/?src_lang=eng_Latn&tgt_lang=kan_Knda"
 
 def ocr_from_paths(file_paths, query):
     results = []
@@ -18,14 +18,14 @@ def ocr_from_paths(file_paths, query):
             
         with open(path, "rb") as f:
             files_param = {"file": (filename, f, mime_type)}
-            data_param = {"query": query or ""}
+            data_param = {"query": query or "describe the image"}  # default query if empty
             
             try:
                 response = requests.post(
                     API_URL,
                     files=files_param,
                     data=data_param,
-                    headers={"accept": "application/json"}
+                    headers={"accept": "application/json"}  # do NOT set Content-Type here
                 )
                 if response.status_code == 200:
                     resp_json = response.json()
