@@ -1,8 +1,19 @@
+import os
 import gradio as gr
 import requests
 import mimetypes
 
-API_URL = "http://209.20.158.215:7862/v1/visual_query/?src_lang=eng_Latn&tgt_lang=kan_Knda"
+# Optional: load environment variables from a .env file (install python-dotenv if needed)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, ignore
+
+# Get the API URL from environment variable, provide a fallback or raise error if not set
+API_URL = os.environ.get("API_URL")
+if not API_URL:
+    raise ValueError("API_URL environment variable not set. Please set it before running the script.")
 
 def ocr_from_paths(file_paths, query):
     results = []
