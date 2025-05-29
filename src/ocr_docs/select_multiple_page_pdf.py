@@ -88,12 +88,14 @@ def process_pdf(pdf_file, pages_str, prompt, src_lang, tgt_lang):
     logger.debug("Calling API with file: %s, pages: %s, prompt: %s, src_lang: %s, tgt_lang: %s",
                 file_path, pages, prompt, src_lang_code, tgt_lang_code)
     
+    system_prompt ="Do not return any asterisk"
+
     results = {}
     for page_number in pages:
         try:
             result = dwani.Documents.run_doc_query(
                 file_path=file_path,
-                prompt=prompt,
+                prompt=prompt + " " + system_prompt,
                 page_number=page_number,
                 src_lang=src_lang_code,
                 tgt_lang=tgt_lang_code
