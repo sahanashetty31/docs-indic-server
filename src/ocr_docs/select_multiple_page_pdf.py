@@ -95,7 +95,8 @@ def process_pdf(pdf_file, pages_str, prompt, src_lang, tgt_lang):
         try:
             result = dwani.Documents.run_doc_query(
                 file_path=file_path,
-                prompt=prompt + " " + system_prompt,
+                #prompt=prompt + " " + system_prompt,
+                prompt = f"{prompt} {system_prompt}" 
                 page_number=page_number,
                 src_lang=src_lang_code,
                 tgt_lang=tgt_lang_code

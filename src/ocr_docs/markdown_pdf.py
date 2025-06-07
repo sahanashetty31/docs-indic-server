@@ -64,14 +64,27 @@ def results_to_markdown(results):
     """
     md_lines = []
     for page, content in results.items():
-        md_lines.append(f"## {page}")
+        md_lines.append(f"## {page}\n")
         if "error" in content:
-            md_lines.append(f"**Error:** {content['error']}")
+            md_lines.append(f"**Error:** {content['error']}\n")
         else:
-            md_lines.append(f"**Original Text:**\n\n``````")
-            md_lines.append(f"**Response:**\n\n{content.get('Response', '')}")
-            md_lines.append(f"**Processed Page:** {content.get('Processed Page', '')}")
-            md_lines.append(f"**Translated Response:**\n\n{content.get('Translated Response', '')}")
+            # Original Text wrapped in code block for formatting
+            md_lines.append("**Original Text:**\n\n```")
+            md_lines.append(content.get('Original Text', '') + "\n")
+            md_lines.append("```\n")
+
+            md_lines.append("**Response:**\n\n" + content.get('Response', '') + "\n")
+
+            md_lines.append("**Processed Page:** " + str(content.get('Processed Page', '')) + "\n")
+
+            # Translated Response: preserve line breaks by replacing single newline with double newline
+            translated = content.get('Translated Response', '')
+
+            # Replace single newlines with double newlines to preserve Markdown paragraph breaks
+            translated = translated.replace('\n', '\n\n')
+
+            md_lines.append("**Translated Response:**\n\n" + translated + "\n")
+
         md_lines.append("\n---\n")
     return "\n".join(md_lines)
 
