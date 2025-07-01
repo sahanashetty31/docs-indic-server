@@ -16,7 +16,7 @@ dwani.api_base = os.getenv("DWANI_API_BASE_URL")
 logger.debug("DWANI_API_KEY: %s", "Set" if dwani.api_key else "Not set")
 logger.debug("DWANI_API_BASE_URL: %s", dwani.api_base)
 
-# Language options for dropdowns
+# Language options for dropdowns (display name and code)
 language_options = [
     ("English", "eng_Latn"),
     ("Kannada", "kan_Knda"),
@@ -61,7 +61,7 @@ def parse_page_numbers(pages_str):
 def results_to_markdown(results):
     """
     Convert the results dictionary into a Markdown formatted string,
-    formatting the translated response to preserve structure.
+    formatting the translated response to preserve structure using <pre> tags.
     """
     md_lines = []
     for page, content in results.items():
@@ -75,7 +75,7 @@ def results_to_markdown(results):
 
             response_text = content.get('Response', '')
             if response_text:
-                md_lines.append("**Response:**\n\n" + response_text + "\n")
+                md_lines.append("Response:\n\n" + response_text + "\n")
 
             md_lines.append("**Processed Page:** " + str(content.get('Processed Page', '')) + "\n")
 
@@ -84,11 +84,10 @@ def results_to_markdown(results):
             # Normalize newlines
             translated = translated.replace('\r\n', '\n').replace('\r', '\n')
 
-            # Preserve formatting by adding paragraph breaks between non-empty lines
-            translated_lines = translated.split('\n')
-            formatted_translated = "\n\n".join(line.strip() for line in translated_lines if line.strip())
-
-            md_lines.append("**Translated Response:**\n\n" + formatted_translated + "\n")
+            # Use <pre> tags to preserve formatting exactly
+            md_lines.append("**Translated Response:**\n\n<pre>")
+            md_lines.append(translated)
+            md_lines.append("</pre>")
 
         md_lines.append("\n---\n")
     return "\n".join(md_lines)
@@ -155,7 +154,7 @@ def process_pdf(pdf_file, pages_str, prompt, src_lang, tgt_lang):
                 # The old 'Response' key is not in new data; set empty string
                 "Response": ""
             }
-        except dwani.exceptions.DhwaniAPIError as e:
+        except dwani.exceptions.DwaniAPIError as e:
             logger.error("Dhwani API error on page %d: %s", page_number, str(e))
             results[f"Page {page_number}"] = {"error": f"API error: {str(e)}"}
         except Exception as e:
@@ -225,3 +224,4 @@ if __name__ == "__main__":
     else:
         logger.debug("Starting Gradio interface...")
         demo.launch()
+ 
