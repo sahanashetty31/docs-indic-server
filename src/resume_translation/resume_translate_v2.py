@@ -52,10 +52,7 @@ def process_pdf(pdf_file):
                 continue
 
             results[f"Page {page_number}"] = {
-                "Processed Page": page_data.get("processed_page", "N/A"),
                 "Original Text": page_data.get("page_content", "N/A"),
-                "Translated Response": page_data.get("translated_content", "N/A"),
-                # The old 'Response' key is not in new data; set empty string
                 "Response": ""
             }
         except dwani.exceptions.DwaniAPIError as e:
@@ -65,7 +62,23 @@ def process_pdf(pdf_file):
             logger.error("Unexpected error on page %d: %s", page_number, str(e))
             results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
 
-    return results
+    return extract_contact_details(results), extract_education_details(results)
+
+
+def extract_contact_details(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str[:600] + " return only contact details from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
+
+
+def extract_education_details(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str[:600] + " return only education details from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
 
 # Define Gradio interface
 with gr.Blocks(title="Resume Translator") as resume_translator:
