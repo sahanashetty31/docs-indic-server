@@ -65,7 +65,7 @@ def process_pdf(pdf_file):
             results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
 
 #    return extract_contact_details(results), extract_education_details(results), extract_workexperience_details(results), extract_skill(results)
-    return tuple(func(results) for func in [extract_contact_details, extract_objective, extract_education_details, extract_workexperience_details, extract_skill])
+    return tuple(func(results) for func in [extract_contact_details, extract_objective, extract_education_details, extract_workexperience_details, extract_skill, extract_certifications])
 
 def extract_contact_details(extracted_resume):
     resume_str = str(extracted_resume)
@@ -99,6 +99,13 @@ def extract_workexperience_details(extracted_resume):
 def extract_skill(extracted_resume):
     resume_str = str(extracted_resume)
     chat_prompt = resume_str + " return only skills from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
+
+def extract_certifications(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str + " return only certifications from the resume "
     chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
     print(chat_response)
     return chat_response
