@@ -24,6 +24,8 @@ def process_pdf(pdf_file):
     file_path = pdf_file.name if hasattr(pdf_file, 'name') else pdf_file
     pages = set()
     pages.add(1)
+    pages.update([2, 3, 4])
+    print(pages)
     src_lang_code = "eng_Latn"
     tgt_lang_code = "kan_Knda"
     logger.debug("Calling API with file: %s, pages: %s, src_lang: %s, tgt_lang: %s",
@@ -62,12 +64,19 @@ def process_pdf(pdf_file):
             logger.error("Unexpected error on page %d: %s", page_number, str(e))
             results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
 
-    return extract_contact_details(results), extract_education_details(results)
-
+#    return extract_contact_details(results), extract_education_details(results), extract_workexperience_details(results), extract_skill(results)
+    return tuple(func(results) for func in [extract_contact_details, extract_objective, extract_education_details, extract_workexperience_details, extract_skill])
 
 def extract_contact_details(extracted_resume):
     resume_str = str(extracted_resume)
-    chat_prompt = resume_str[:600] + " return only contact details from the resume "
+    chat_prompt = resume_str + " return only contact details from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
+
+def extract_objective(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str + " return only objective or professional summary from the resume "
     chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
     print(chat_response)
     return chat_response
@@ -75,7 +84,21 @@ def extract_contact_details(extracted_resume):
 
 def extract_education_details(extracted_resume):
     resume_str = str(extracted_resume)
-    chat_prompt = resume_str[:600] + " return only education details from the resume "
+    chat_prompt = resume_str + " return only education details from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
+
+def extract_workexperience_details(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str + " return only work experience from the resume "
+    chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
+    print(chat_response)
+    return chat_response
+
+def extract_skill(extracted_resume):
+    resume_str = str(extracted_resume)
+    chat_prompt = resume_str + " return only skills from the resume "
     chat_response = dwani.Chat.direct(prompt=chat_prompt, model="gemma3")
     print(chat_response)
     return chat_response
@@ -99,7 +122,6 @@ with gr.Blocks(title="Resume Translator") as resume_translator:
         inputs=[pdf_input],
         outputs=output
     )
-
 
 
 if __name__ == "__main__":
