@@ -46,40 +46,10 @@ def process_pdf(pdf_file):
         return None
 
     file_path = pdf_file.name if hasattr(pdf_file, 'name') else pdf_file
-    pages = {1, 2}
-    src_lang_code = "eng_Latn"
-    tgt_lang_code = "kan_Knda"
+  
+    result = dwani.Documents.run_ocr(file_path=file_path, model="gemma3")
 
-    results = {}
-    for page_number in pages:
-        try:
-            result = dwani.Documents.run_extract(
-                file_path=file_path,
-                page_number=page_number,
-                src_lang=src_lang_code,
-                tgt_lang=tgt_lang_code
-            )
-            page_data = None
-            for p in result.get('pages', []):
-                if p.get('processed_page') == page_number:
-                    page_data = p
-                    break
-
-            if page_data is None:
-                results[f"Page {page_number}"] = {"error": "No data returned for this page"}
-                continue
-
-            results[f"Page {page_number}"] = {
-                "Original Text": page_data.get("page_content", "N/A"),
-                "Response": ""
-            }
-        except dwani.exceptions.DwaniAPIError as e:
-            logger.error(f"Dhwani API error on page {page_number}: {str(e)}")
-            results[f"Page {page_number}"] = {"error": f"API error: {str(e)}"}
-        except Exception as e:
-            logger.error(f"Unexpected error on page {page_number}: {str(e)}")
-            results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
-    extracted_details = extract_resume_sections(results)
+    extracted_details = extract_resume_sections(result)
 
     translation = translate_to_kannada(extracted_details)
 
