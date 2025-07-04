@@ -2,6 +2,7 @@ import gradio as gr
 import logging
 import dwani
 import os
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,13 +17,16 @@ def translate_to_kannada(text):
     """Translate English text to Kannada using dwani.Translate.run_translate."""
     if not text or text.strip() == "":
         return ""
-
+    start_time = time.time()
     try:
         resp = dwani.Translate.run_translate(
             sentences=text,
             src_lang="english",
             tgt_lang="kannada"
         )
+
+        elapsed = time.time() - start_time
+        logger.info(f"Translation took {elapsed:.2f} seconds")
         if isinstance(resp, dict):
             translated = resp.get("translated_text")
             if translated:
@@ -40,11 +44,11 @@ def translate_to_kannada(text):
 
 def process_pdf(pdf_file):
     logger.debug("Received inputs - PDF: %s", pdf_file)
-
+    overall_start = time.time()
     if not pdf_file:
         logger.error("No PDF file provided")
         return None
-
+    extraction_start = time.time()
     file_path = pdf_file.name if hasattr(pdf_file, 'name') else pdf_file
   
     result = dwani.Documents.run_ocr(file_path=file_path, model="gemma3")
@@ -54,7 +58,8 @@ def process_pdf(pdf_file):
     translation = translate_to_kannada(extracted_details)
 
  #   formatted_resume = format_resume(contact_kan, objective_kan, education_kan, work_experience_kan, skills_kan, certifications_kan)
-
+    extraction_elapsed = time.time() - extraction_start
+    logger.info(f"Extraction from PDF took {extraction_elapsed:.2f} seconds")
     text_filename = "resume.txt"
     with open(text_filename, "w", encoding="utf-8") as f:
         f.write(translation)
