@@ -2,10 +2,13 @@ import gradio as gr
 import logging
 import dwani
 import os
+import time
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 # Configure dwani API settings from environment variables
 dwani.api_key = os.getenv("DWANI_API_KEY")
@@ -17,12 +20,16 @@ def translate_to_kannada(text):
     if not text or text.strip() == "":
         return ""
 
+    start_time = time.time()
     try:
         resp = dwani.Translate.run_translate(
             sentences=text,
             src_lang="english",
             tgt_lang="kannada"
         )
+        elapsed = time.time() - start_time
+        logger.info(f"Translation took {elapsed:.2f} seconds")
+
         if isinstance(resp, dict):
             translated = resp.get("translated_text")
             if translated:
@@ -38,8 +45,10 @@ def translate_to_kannada(text):
         logger.error(f"Translation error: {e}")
         return f"Translation error: {e}"
 
+
 def process_pdf(pdf_file):
     logger.debug("Received inputs - PDF: %s", pdf_file)
+    overall_start = time.time()
 
     if not pdf_file:
         logger.error("No PDF file provided")
@@ -51,6 +60,7 @@ def process_pdf(pdf_file):
     tgt_lang_code = "kan_Knda"
 
     results = {}
+    extraction_start = time.time()
     for page_number in pages:
         try:
             result = dwani.Documents.run_extract(
@@ -79,20 +89,30 @@ def process_pdf(pdf_file):
         except Exception as e:
             logger.error(f"Unexpected error on page {page_number}: {str(e)}")
             results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
+    extraction_elapsed = time.time() - extraction_start
+    logger.info(f"Extraction from PDF took {extraction_elapsed:.2f} seconds")
 
+    # Extraction done, now extract sections from results with timing
+    extraction_text_start = time.time()
     contact_en = extract_contact_details(results)
     objective_en = extract_objective(results)
     education_en = extract_education_details(results)
     work_experience_en = extract_workexperience_details(results)
     skills_en = extract_skill(results)
     certifications_en = extract_certifications(results)
+    extraction_text_elapsed = time.time() - extraction_text_start
+    logger.info(f"Section extraction took {extraction_text_elapsed:.2f} seconds")
 
+    # Translation with timing
+    translation_start = time.time()
     contact_kan = translate_to_kannada(contact_en)
     objective_kan = translate_to_kannada(objective_en)
     education_kan = translate_to_kannada(education_en)
     work_experience_kan = translate_to_kannada(work_experience_en)
     skills_kan = translate_to_kannada(skills_en)
     certifications_kan = translate_to_kannada(certifications_en)
+    translation_elapsed = time.time() - translation_start
+    logger.info(f"Translation of all sections took {translation_elapsed:.2f} seconds")
 
     formatted_resume = format_resume(contact_kan, objective_kan, education_kan, work_experience_kan, skills_kan, certifications_kan)
 
@@ -100,7 +120,11 @@ def process_pdf(pdf_file):
     with open(text_filename, "w", encoding="utf-8") as f:
         f.write(formatted_resume)
 
+    overall_elapsed = time.time() - overall_start
+    logger.info(f"Total process_pdf runtime: {overall_elapsed:.2f} seconds")
+
     return text_filename
+
 
 def extract_text_from_response(chat_response):
     if isinstance(chat_response, dict):
@@ -113,11 +137,13 @@ def extract_text_from_response(chat_response):
     else:
         return str(chat_response)
 
+
 def extract_contact_details(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only contact details from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
+
 
 def extract_objective(extracted_resume):
     resume_str = str(extracted_resume)
@@ -125,11 +151,13 @@ def extract_objective(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
+
 def extract_education_details(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only education details from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
+
 
 def extract_workexperience_details(extracted_resume):
     resume_str = str(extracted_resume)
@@ -137,11 +165,13 @@ def extract_workexperience_details(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
+
 def extract_skill(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only skills from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
+
 
 def extract_certifications(extracted_resume):
     resume_str = str(extracted_resume)
@@ -149,32 +179,41 @@ def extract_certifications(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
+
 def safe_strip(value):
     if isinstance(value, dict):
         value = extract_text_from_response(value)
     return str(value).strip()
 
+
 def format_resume(contact, objective, education, work_experience, skills, certifications):
     return f"""# Resume (Kannada)
+
 
 ## ಸಂಪರ್ಕ ವಿವರಗಳು (Contact Details)
 {safe_strip(contact)}
 
+
 ## ಉದ್ದೇಶ (Objective)
 {safe_strip(objective)}
+
 
 ## ಶಿಕ್ಷಣ (Education)
 {safe_strip(education)}
 
+
 ## ಕೆಲಸದ ಅನುಭವ (Work Experience)
 {safe_strip(work_experience)}
+
 
 ## ಕೌಶಲ್ಯಗಳು (Skills)
 {safe_strip(skills)}
 
+
 ## ಪ್ರಮಾಣಪತ್ರಗಳು (Certifications)
 {safe_strip(certifications)}
 """
+
 
 with gr.Blocks(title="Resume Translator with Kannada Translation") as resume_translator:
     gr.Markdown("# Resume Upload")
@@ -194,5 +233,7 @@ with gr.Blocks(title="Resume Translator with Kannada Translation") as resume_tra
         outputs=text_output
     )
 
+
 if __name__ == "__main__":
     resume_translator.launch()
+
