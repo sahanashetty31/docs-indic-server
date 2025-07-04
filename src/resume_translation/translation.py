@@ -79,16 +79,9 @@ def process_pdf(pdf_file):
         except Exception as e:
             logger.error(f"Unexpected error on page {page_number}: {str(e)}")
             results[f"Page {page_number}"] = {"error": f"Unexpected error: {str(e)}"}
+    extracted_details = extract_resume_sections(results)
 
-    contact_en = extract_contact_details(results)
-    objective_en = extract_objective(results)
-    education_en = extract_education_details(results)
-    work_experience_en = extract_workexperience_details(results)
-    skills_en = extract_skill(results)
-    certifications_en = extract_certifications(results)
-
-    extraction = contact_en + objective_en + education_en + work_experience_en + skills_en + certifications_en
-    translation = translate_to_kannada(extraction)
+    translation = translate_to_kannada(extracted_details)
 
  #   formatted_resume = format_resume(contact_kan, objective_kan, education_kan, work_experience_kan, skills_kan, certifications_kan)
 
@@ -108,6 +101,23 @@ def extract_text_from_response(chat_response):
         return chat_response
     else:
         return str(chat_response)
+    
+def extract_resume_sections(extracted_resume):
+    resume_str = str(extracted_resume)
+    prompt = (
+        resume_str +
+        "\n\nExtract the following details from the resume:\n"
+        "1. Contact details\n"
+        "2. Objective or professional summary\n"
+        "3. Education details\n"
+        "4. Work experience\n"
+        "5. Skills\n"
+        "6. Certifications\n\n"
+        "Return the information in a JSON format with keys: "
+        "'contact_details', 'objective', 'education', 'work_experience', 'skills', 'certifications'."
+    )
+    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
+    return extract_text_from_response(response)
 
 def extract_contact_details(extracted_resume):
     resume_str = str(extracted_resume)
