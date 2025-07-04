@@ -58,7 +58,6 @@ def process_pdf(pdf_file):
     text_filename = "resume.txt"
     with open(text_filename, "w", encoding="utf-8") as f:
         f.write(translation)
-
     return text_filename
 
 def extract_text_from_response(chat_response):
@@ -89,41 +88,6 @@ def extract_resume_sections(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
-def extract_contact_details(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only contact details from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
-
-def extract_objective(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only objective or professional summary from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
-
-def extract_education_details(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only education details from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
-
-def extract_workexperience_details(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only work experience from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
-
-def extract_skill(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only skills from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
-
-def extract_certifications(extracted_resume):
-    resume_str = str(extracted_resume)
-    prompt = resume_str + " return only certifications from the resume "
-    response = dwani.Chat.direct(prompt=prompt, model="gemma3")
-    return extract_text_from_response(response)
 
 def safe_strip(value):
     if isinstance(value, dict):

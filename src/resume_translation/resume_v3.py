@@ -4,16 +4,13 @@ import dwani
 import os
 import time
 
-
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)  # DEBUG for detailed logs
 logger = logging.getLogger(__name__)
-
 
 # Configure dwani API settings from environment variables
 dwani.api_key = os.getenv("DWANI_API_KEY")
 dwani.api_base = os.getenv("DWANI_API_BASE_URL")
-
 
 def translate_to_kannada(text):
     """Translate English text to Kannada using dwani.Translate.run_translate."""
@@ -22,6 +19,7 @@ def translate_to_kannada(text):
 
     start_time = time.time()
     try:
+        logger.debug(f"Translating text of length {len(text)}")
         resp = dwani.Translate.run_translate(
             sentences=text,
             src_lang="english",
@@ -44,7 +42,6 @@ def translate_to_kannada(text):
     except Exception as e:
         logger.error(f"Translation error: {e}")
         return f"Translation error: {e}"
-
 
 def process_pdf(pdf_file):
     logger.debug("Received inputs - PDF: %s", pdf_file)
@@ -92,7 +89,6 @@ def process_pdf(pdf_file):
     extraction_elapsed = time.time() - extraction_start
     logger.info(f"Extraction from PDF took {extraction_elapsed:.2f} seconds")
 
-    # Extraction done, now extract sections from results with timing
     extraction_text_start = time.time()
     contact_en = extract_contact_details(results)
     objective_en = extract_objective(results)
@@ -103,7 +99,7 @@ def process_pdf(pdf_file):
     extraction_text_elapsed = time.time() - extraction_text_start
     logger.info(f"Section extraction took {extraction_text_elapsed:.2f} seconds")
 
-    # Translation with timing
+    # Translate each section individually to avoid marker issues
     translation_start = time.time()
     contact_kan = translate_to_kannada(contact_en)
     objective_kan = translate_to_kannada(objective_en)
@@ -113,6 +109,19 @@ def process_pdf(pdf_file):
     certifications_kan = translate_to_kannada(certifications_en)
     translation_elapsed = time.time() - translation_start
     logger.info(f"Translation of all sections took {translation_elapsed:.2f} seconds")
+
+    # Check for translation errors
+    for section_name, section_text in [
+        ("Contact Details", contact_kan),
+        ("Objective", objective_kan),
+        ("Education", education_kan),
+        ("Work Experience", work_experience_kan),
+        ("Skills", skills_kan),
+        ("Certifications", certifications_kan),
+    ]:
+        if section_text.startswith("Translation error:"):
+            logger.error(f"Translation failed for section {section_name}: {section_text}")
+            return None
 
     formatted_resume = format_resume(contact_kan, objective_kan, education_kan, work_experience_kan, skills_kan, certifications_kan)
 
@@ -125,7 +134,6 @@ def process_pdf(pdf_file):
 
     return text_filename
 
-
 def extract_text_from_response(chat_response):
     if isinstance(chat_response, dict):
         for key in ("text", "response", "content"):
@@ -137,13 +145,11 @@ def extract_text_from_response(chat_response):
     else:
         return str(chat_response)
 
-
 def extract_contact_details(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only contact details from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
-
 
 def extract_objective(extracted_resume):
     resume_str = str(extracted_resume)
@@ -151,13 +157,11 @@ def extract_objective(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
-
 def extract_education_details(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only education details from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
-
 
 def extract_workexperience_details(extracted_resume):
     resume_str = str(extracted_resume)
@@ -165,13 +169,11 @@ def extract_workexperience_details(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
-
 def extract_skill(extracted_resume):
     resume_str = str(extracted_resume)
     prompt = resume_str + " return only skills from the resume "
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
-
 
 def extract_certifications(extracted_resume):
     resume_str = str(extracted_resume)
@@ -179,41 +181,32 @@ def extract_certifications(extracted_resume):
     response = dwani.Chat.direct(prompt=prompt, model="gemma3")
     return extract_text_from_response(response)
 
-
 def safe_strip(value):
     if isinstance(value, dict):
         value = extract_text_from_response(value)
     return str(value).strip()
 
-
 def format_resume(contact, objective, education, work_experience, skills, certifications):
     return f"""# Resume (Kannada)
-
 
 ## ಸಂಪರ್ಕ ವಿವರಗಳು (Contact Details)
 {safe_strip(contact)}
 
-
 ## ಉದ್ದೇಶ (Objective)
 {safe_strip(objective)}
-
 
 ## ಶಿಕ್ಷಣ (Education)
 {safe_strip(education)}
 
-
 ## ಕೆಲಸದ ಅನುಭವ (Work Experience)
 {safe_strip(work_experience)}
-
 
 ## ಕೌಶಲ್ಯಗಳು (Skills)
 {safe_strip(skills)}
 
-
 ## ಪ್ರಮಾಣಪತ್ರಗಳು (Certifications)
 {safe_strip(certifications)}
 """
-
 
 with gr.Blocks(title="Resume Translator with Kannada Translation") as resume_translator:
     gr.Markdown("# Resume Upload")
@@ -230,10 +223,9 @@ with gr.Blocks(title="Resume Translator with Kannada Translation") as resume_tra
     submit_btn.click(
         fn=process_pdf,
         inputs=[pdf_input],
-        outputs=text_output
+        outputs=text_output,
+        show_progress=False  # Disable processing spinner
     )
-
 
 if __name__ == "__main__":
     resume_translator.launch()
-
