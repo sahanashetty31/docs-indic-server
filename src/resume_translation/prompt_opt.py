@@ -6,11 +6,11 @@ dwani.api_key = os.getenv("DWANI_API_KEY")
 dwani.api_base = os.getenv("DWANI_API_BASE_URL")
 
 # Load the document and run OCR on page 1 and page 2
-page_number1_result = dwani.Documents.run_ocr_number(
-    file_path="sahana_shetty_resume_2024.pdf", page_number=1, model="gemma3"
+page_number1_result = dwani.Documents.run_ocr_page(
+    file_path="Sahana_S_Shetty.pdf", page_number=1, model="gemma3"
 )
-page_number2_result = dwani.Documents.run_ocr_number(
-    file_path="sahana_shetty_resume_2024.pdf", page_number=2, model="gemma3"
+page_number2_result = dwani.Documents.run_ocr_page(
+    file_path="Sahana_S_Shetty.pdf", page_number=2, model="gemma3"
 )
 
 # Combine the text content from both pages
@@ -61,7 +61,7 @@ response2 = dwani.Chat.direct(prompt=prompt2, model="gemma3")
 markdown_resume = response1["response"] + "\n" + response2["response"]
 
 # Save the result to a file
-output_file = "parsed_resume1.md"
+output_file = "parsed_resume3.md"
 with open(output_file, "w", encoding="utf-8") as f:
     f.write(markdown_resume)
 
